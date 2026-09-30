@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuntosalipäiväkirja</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #00adb5;
+            --text-color: #eeeeee;
+            --subtext-color: #aaaaaa;
+            --border-color: #333333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h1, h2, h3 {
+            text-align: center;
+            color: var(--accent-color);
+        }
+
+        nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        nav button {
+            flex: 1;
+            padding: 12px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        nav button.active {
+            background-color: var(--accent-color);
+            color: #fff;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .exercise-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .exercise-title {
+            font-size: 1.2rem;
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        .last-result {
+            font-size: 0.85rem;
+            color: var(--subtext-color);
+            margin-bottom: 15px;
+        }
+
+        .set-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .set-row span {
+            width: 60px;
+            font-size: 0.9rem;
+        }
+
+        input[type="number"] {
+            width: 70px;
+            padding: 8px;
+            background-color: #2a2a2a;
+            border: 1px solid var(--border-color);
+            color: #fff;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .btn-save {
+            width: 100%;
+            padding: 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .history-item {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .history-date {
+            font-weight: bold;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+        }
+
+        .history-exercise {
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Kuntosalipäiväkirja</h1>
+
+    <!-- Navigaatio -->
+    <nav>
+        <button id="nav-workout" class="active" onclick="switchTab('workout')">Treeni</button>
+        <button id="nav-history" onclick="switchTab('history')">Historia & Kehitys</button>
+    </nav>
+
+    <!-- TREENINÄKYMÄ -->
+    <div id="view-workout" class="view active">
+        <label for="workout-select">Valitse ohjelman osio:</label>
+        <select id="workout-select" onchange="loadWorkoutProgram()" style="width: 100%; padding: 10px; margin: 10px 0 20px 0; background-color: var(--card-bg); color: #fff; border: 1px solid var(--border-color); border-radius: 5px;">
+            <option value="day1">Päivä 1: Työntävät (Rinta, Olkapäät, Ojentajat)</option>
+            <option value="day2">Päivä 2: Vetävät (Selkä, Hauikset, Takaolkapäät)</option>
+            <option value="day3">Päivä 3: Jalat & Vatsa (Reidet, Pakarat, Pohkeet, Vatsa)</option>
+        </select>
+
+        <form id="workout-form">
+            <div id="exercise-container"></div>
+            <button type="button" class="btn-save" onclick="saveWorkout()">Tallenna treeni</button>
+        </form>
+    </div>
+
+    <!-- HISTORIANÄKYMÄ -->
+    <div id="view-history" class="view">
+        <h2>Treenihistoria</h2>
+        <div id="history-container"></div>
+    </div>
+
+    <script>
+        // 3-jakoinen ohjelma
+        const programs = {
+            day1: [
+                { name: "Penkkipunnerrus tangolla", sets: 3 },
+                { name: "Pystypunnerrus käsipainoilla", sets: 3 },
+                { name: "Incline Käsipainopenkki", sets: 3 },
+                { name: "Ojentajapunnerrus taljassa", sets: 3 },
+                { name: "Viponostot sivuille", sets: 3 }
+            ],
+            day2: [
+                { name: "Ylätalja / Leuanveto", sets: 3 },
+                { name: "Kulmasoutu tangolla / käsipainolla", sets: 3 },
+                { name: "Alataljasoutu", sets: 3 },
+                { name: "Hauiskääntö tangolla", sets: 3 },
+                { name: "Takaolkapääsoutu / Facepull", sets: 3 }
+            ],
+            day3: [
+                { name: "Kyykky / Jalkaprässi", sets: 3 },
+                { name: "Romanialainen maastaveto", sets: 3 },
+                { name: "Reidenojennus laitteessa", sets: 3 },
+                { name: "Pohkeet seisten", sets: 4 },
+                { name: "Vatsarutistukset / Lankku", sets: 3 }
+            ]
+        };
+
+        // Alustetaan sovellus
+        document.addEventListener("DOMContentLoaded", () => {
+            loadWorkoutProgram();
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+
+            if (tab === 'workout') {
+                document.getElementById('view-workout').classList.add('active');
+                document.getElementById('nav-workout').classList.add('active');
+            } else {
+                document.getElementById('view-history').classList.add('active');
+                document.getElementById('nav-history').classList.add('active');
+                renderHistory();
+            }
+        }
+
+        // Lataa valitun treenipäivän liikkeet
+        function loadWorkoutProgram() {
+            const selectedDay = document.getElementById('workout-select').value;
+            const exercises = programs[selectedDay];
+            const container = document.getElementById('exercise-container');
+            const history = JSON.parse(localStorage.getItem('gymHistory')) || [];
+
+            container.innerHTML = '';
+
+            exercises.forEach((ex, exIndex) => {
+                // Etsitään edelliset tulokset kyseiselle liikkeelle
+                let lastResultText = "Ei aiempaa tulosta";
+                for (let i = history.length - 1; i >= 0; i--) {
+                    const foundEx = history[i].exercises.find(e => e.name === ex.name);
+                    if (foundEx) {
+                        const setsStr = foundEx.sets.map(s => `${s.weight}kg x ${s.reps}`).join(', ');
+                        lastResultText = `Edellinen (${history[i].date}): ${setsStr}`;
+                        break;
+                    }
+                }
+
+                let cardHTML = `
+                    <div class="exercise-card">
+                        <h3 class="exercise-title">${ex.name}</h3>
+                        <div class="last-result">${lastResultText}</div>
+                `;
+
+                for (let s = 1; s <= ex.sets; s++) {
+                    cardHTML += `
+                        <div class="set-row">
+                            <span>Sarja ${s}</span>
+                            <input type="number" placeholder="kg" class="weight-input" data-ex="${exIndex}" data-set="${s}">
+                            <span>kg</span>
+                            <input type="number" placeholder="toistot" class="reps-input" data-ex="${exIndex}" data-set="${s}">
+                            <span>toistoa</span>
+                        </div>
+                    `;
+                }
+
+                cardHTML += `</div>`;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // Tallentaa treenin muistiin
+        function saveWorkout() {
+            const selectedDay = document.getElementById('workout-select').value;
+            const exercisesConfig = programs[selectedDay];
+            const workoutData = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('fi-FI'),
+                programName: document.getElementById('workout-select').selectedOptions[0].text,
+                exercises: []
+            };
+
+            let hasData = false;
+
+            exercisesConfig.forEach((ex, exIndex) => {
+                const exData = { name: ex.name, sets: [] };
+                
+                for (let s = 1; s <= ex.sets; s++) {
+                    const weightInput = document.querySelector(`.weight-input[data-ex="${exIndex}"][data-set="${s}"]`);
+                    const repsInput = document.querySelector(`.reps-input[data-ex="${exIndex}"][data-set="${s}"]`);
+
+                    if (weightInput.value !== "" || repsInput.value !== "") {
+                        hasData = true;
+                        exData.sets.push({
+                            weight: weightInput.value || 0,
+                            reps: repsInput.value || 0
+                        });
+                    }
+                }
+
+                if (exData.sets.length > 0) {
+                    workoutData.exercises.push(exData);
+                }
+            });
+
+            if (!hasData) {
+                alert("Syötä vähintään yhden sarjan tiedot ennen tallentamista!");
+                return;
+            }
+
+            // Tallenna localStorageen
+            const history = JSON.parse(localStorage.getItem('gymHistory')) || [];
+            history.push(workoutData);
+            localStorage.setItem('gymHistory', JSON.stringify(history));
+
+            alert("Treeni tallennettu onnistuneesti!");
+            
+            // Tyhjennetään lomake ja päivitetään edelliset tulokset
+            loadWorkoutProgram();
+        }
+
+        // Renderöi historia-sivun
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            const history = JSON.parse(localStorage.getItem('gymHistory')) || [];
+
+            if (history.length === 0) {
+                container.innerHTML = "<p style='text-align:center;'>Ei vielä tallennettuja treenejä.</p>";
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            // Näytetään uusimmat treenit ensin
+            [...history].reverse().forEach(workout => {
+                let html = `
+                    <div class="history-item">
+                        <div class="history-date">${workout.date} - ${workout.programName}</div>
+                `;
+
+                workout.exercises.forEach(ex => {
+                    const setsStr = ex.sets.map(s => `${s.weight}kg × ${s.reps}`).join(' | ');
+                    html += `
+                        <div class="history-exercise">
+                            <strong>${ex.name}:</strong> ${setsStr}
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                container.innerHTML += html;
+            });
+        }
+    </script>
+</body>
+</html>
